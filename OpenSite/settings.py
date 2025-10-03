@@ -20,7 +20,7 @@ load_dotenv()
 SECRET_KEY = os.environ['SECRET_KEY']
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "eduardomarinho.dev", "www.eduardomarinho.dev"]
 
 HTML_MINIFY   = True
 APPEND_SLASH  = True
@@ -130,3 +130,4 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = '/var/www/eduardomarinho/static/'
