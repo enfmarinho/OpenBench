@@ -18,21 +18,22 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import os, hashlib, datetime, json, secrets, sys, re
+import csv, io, os, json, secrets
 
 import django.http
 import django.shortcuts
 import django.contrib.auth
 
 import OpenBench.config
-import OpenBench.utils
 import OpenBench.model_utils
+import OpenBench.spsa_utils
+import OpenBench.utils
 
 from OpenBench.workloads.create_workload import create_workload
 from OpenBench.workloads.get_workload import get_workload
 from OpenBench.workloads.modify_workload import modify_workload
 from OpenBench.workloads.verify_workload import verify_workload
-from OpenBench.workloads.view_workload import view_workload
+from OpenBench.workloads.view_workload import view_workload, fetch_results
 
 from OpenBench.config import OPENBENCH_CONFIG, OPENBENCH_CONFIG_CHECKSUM, OPENBENCH_STATIC_VERSION
 from OpenSite.settings import PROJECT_PATH
@@ -468,7 +469,7 @@ def workload(request, workload_type, pk, action=None):
     if action != None:
         return modify_workload(request, pk, action)
 
-    if not (workload := Test.objects.filter(id=int(pk)).first()):
+    if not (workload := Test.objects.select_related('spsa_run').filter(id=int(pk)).first()):
         return redirect(request, '/index/', error='No such Workload exists')
 
     # Trying to view a Tune as a Test, for example
@@ -565,20 +566,20 @@ def verify_worker(function):
 
         # Get the machine, assuming it exists
         try: machine = Machine.objects.get(id=int(args[0].POST['machine_id']))
-        except: return JsonResponse({ 'error' : 'Bad Machine Id' })
+        except: return JsonResponse({ 'error' : 'Bad Client Version: Bad Machine Id' })
 
         # Ensure the Client is using the same version as the Server
         if machine.info['client_ver'] != OPENBENCH_CONFIG['client_version']:
             expected_ver = OPENBENCH_CONFIG['client_version']
             return JsonResponse({ 'error' : 'Bad Client Version: Expected %d' % (expected_ver)})
 
-        # Use the secret token as our soft verification
-        if machine.secret != args[0].POST['secret']:
-            return JsonResponse({ 'error' : 'Invalid Secret Token' })
-
         # Prompt the worker to soft-restart if its config is out of date
         if machine.info.get('OPENBENCH_CONFIG_CHECKSUM') != OPENBENCH_CONFIG_CHECKSUM:
-            return JsonResponse({ 'error' : 'Server Configuration Changed' })
+            return JsonResponse({ 'error' : 'Bad Client Version: Server Configuration Changed' })
+
+        # Use the secret token as our soft verification
+        if machine.secret != args[0].POST['secret']:
+            return JsonResponse({ 'error' : 'Bad Client Version: Invalid Secret Token' })
 
         # Otherwise, carry on, and pass along the machine
         return function(*args, machine)
@@ -598,6 +599,21 @@ def client_version_ref(request):
         'client_version'  : OPENBENCH_CONFIG['client_version' ],
         'client_repo_url' : OPENBENCH_CONFIG['client_repo_url'],
         'client_repo_ref' : OPENBENCH_CONFIG['client_repo_ref'],
+    })
+
+@csrf_exempt
+def client_match_runner_version_ref(request):
+
+    # Verify the User's credentials
+    try: user = authenticate(request, True)
+    except UnableToAuthenticate:
+        return JsonResponse({ 'error' : 'Bad Credentials' })
+
+    # Enough information to build the right Fastchess version
+    return JsonResponse({
+        'fastchess_min_version' : OPENBENCH_CONFIG['fastchess_min_version'],
+        'fastchess_repo_url'    : OPENBENCH_CONFIG['fastchess_repo_url'],
+        'fastchess_repo_ref'    : OPENBENCH_CONFIG['fastchess_repo_ref'],
     })
 
 @csrf_exempt
@@ -905,7 +921,7 @@ def api_pgns(request, pgn_id):
     except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
 
     # 2. Make sure there actually is a PGN attached to the Workload
-    pgn_path = FileSystemStorage('Media/PGNs').path('%d.pgn.tar' % (pgn_id))
+    pgn_path = FileSystemStorage().path('PGNs/%d.pgn.tar' % (pgn_id))
     if not os.path.exists(pgn_path):
         return api_response({ 'error' : 'Unable to find PGN for Workload #%d' % (pgn_id) })
 
@@ -930,6 +946,39 @@ def api_pgns(request, pgn_id):
     response['Content-Length'] = os.path.getsize(pgn_path)
     response['Content-Disposition'] = 'attachment; filename=%d.pgn.tar' % (pgn_id)
     return response
+
+@csrf_exempt
+def api_spsa(request, workload_id):
+
+    # 0. Make sure the request has the correct permissions
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    # 1. Make sure the workload actually exists for the requested SPSA session
+    try: workload = Test.objects.get(pk=workload_id)
+    except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(OpenBench.spsa_utils.spsa_param_digest_headers(workload))
+    writer.writerows(OpenBench.spsa_utils.spsa_param_digest(workload))
+
+    response = HttpResponse(output.getvalue(), content_type='text/plain')
+    response.charset = 'utf-8'
+    return response
+
+@csrf_exempt
+def api_workload_results(request, workload_id):
+
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    try: workload = Test.objects.get(pk=workload_id)
+    except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
+
+    truncated, results_json = fetch_results(workload_id, force=True)
+    return JsonResponse({'results' : results_json})
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                BUSINESS VIEWS                               #
