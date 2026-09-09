@@ -51,18 +51,14 @@ def twoDigitPrecision(value):
 
 def gitDiffLink(test):
 
-    engines = OpenBench.config.OPENBENCH_CONFIG['engines']
-
-    if test.dev_engine in engines and engines[test.dev_engine]['private']:
-        repo = OpenBench.config.OPENBENCH_CONFIG['engines'][test.dev_engine]['source']
-    else:
-        repo = OpenBench.utils.path_join(*test.dev.source.split('/')[:-2])
+    repo = OpenBench.utils.path_join(*test.dev.source.split('/')[:-2])
+    repo = repo.replace('://api.github.com', '://github.com').replace('/repos/', '/')
 
     if test.test_mode == 'SPSA':
         return OpenBench.utils.path_join(repo, 'compare', test.dev.sha[:8])
 
     return OpenBench.utils.path_join(repo, 'compare',
-        '{0}..{1}'.format( test.base.sha[:8], test.dev.sha[:8]))
+        '{0}..{1}'.format(test.base.sha[:8], test.dev.sha[:8]))
 
 def shortStatBlock(test):
 
@@ -229,8 +225,8 @@ register.filter('removePrefix', removePrefix)
 register.filter('machine_name', machine_name)
 
 def book_download_link(workload):
-    if workload.book_name in OpenBench.config.OPENBENCH_CONFIG['books']:
-        return OpenBench.config.OPENBENCH_CONFIG['books'][workload.book_name]['source']
+    if (book := OpenBench.models.Book.objects.filter(name=workload.book_name).first()):
+        return book.source
 
 def network_download_link(workload, branch):
 
@@ -288,12 +284,6 @@ def test_is_time_odds(test):
 
 def test_is_fischer(test):
     return 'FRC' in test.book_name.upper() or '960' in test.book_name.upper()
-
-
-register.filter('spsa_param_digest', OpenBench.spsa_utils.spsa_param_digest)
-register.filter('spsa_param_digest_headers', OpenBench.spsa_utils.spsa_param_digest_headers)
-register.filter('spsa_original_input', OpenBench.spsa_utils.spsa_original_input)
-register.filter('spsa_optimal_values', OpenBench.spsa_utils.spsa_optimal_values)
 
 register.filter('book_download_link', book_download_link)
 register.filter('network_download_link', network_download_link)

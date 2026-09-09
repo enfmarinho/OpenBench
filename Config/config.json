@@ -1,9 +1,9 @@
 {
-    "client_version"  : 43,
+    "client_version"  : 50,
     "client_repo_url" : "https://github.com/enfmarinho/OpenBench",
     "client_repo_ref" : "minke",
 
-    "fastchess_min_version" : "1.7.0",
+    "fastchess_min_version" : "1.8.1",
     "fastchess_repo_url"    : "https://github.com/AndyGrant/fastchess",
     "fastchess_repo_ref"    : "master",
 
@@ -30,4 +30,6 @@
     "engines" : [
         "Minke"
     ]
+    "use_x_accel_redirect"  : false,
+    "x_accel_redirect_root" : "/x-accel-media/"
 }
