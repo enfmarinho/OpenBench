@@ -29,7 +29,7 @@
 
     "engines" : [
         "Minke"
-    ]
+    ],
     "use_x_accel_redirect"  : false,
     "x_accel_redirect_root" : "/x-accel-media/"
 }
