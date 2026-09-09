@@ -1,11 +1,11 @@
 {
     "private" : false,
-    "nps"     : 1100000,
+    "nps"     : 1200000,
     "source"  : "https://github.com/enfmarinho/Minke",
 
     "build" : {
         "path"      : "",
-        "compilers" : ["clang++", "g++"],
+	"compilers" : ["g++", "clang++"],
         "cpuflags"  : [],
         "systems"   : ["Linux", "Windows", "Darwin"]
     },
@@ -15,8 +15,8 @@
         "default" : {
             "base_branch"     : "main",
             "book_name"       : "UHO_Lichess_4852_v1.epd",
-            "test_bounds"     : "[0.00, 3.00]",
-            "test_confidence" : "[0.05, 0.10]",
+            "test_bounds"     : "[0.00, 5.00]",
+            "test_confidence" : "[0.10, 0.05]",
             "win_adj"   : "movecount=5 score=1200",
             "draw_adj"  : "movenumber=40 movecount=8 score=10"
         },
@@ -35,7 +35,7 @@
 
         "MTC" : {
             "both_options"      : "Threads=1 Hash=64",
-            "both_time_control" : "16.0+0.16",
+            "both_time_control" : "20.0+0.2",
             "workload_size"     : 32
         },
 
@@ -51,10 +51,17 @@
             "workload_size"     : 8
         },
 
+        "VLTC SMP" : {
+            "both_options"   : "Threads=4 Hash=256",
+            "both_time_control" : "20.0+0.2",
+            "workload_size"     : 8
+        },
+
         "STC regression" : {
             "both_options"      : "Threads=1 Hash=32",
             "both_time_control" : "8.0+0.08",
             "workload_size"     : 32,
+            "test_confidence" : "[0.05, 0.05]",
             "test_bounds"       : "[-5.00, 0.00]"
         },
 
@@ -62,6 +69,7 @@
             "both_options"      : "Threads=1 Hash=128",
             "both_time_control" : "40.0+0.4",
             "workload_size"     : 8,
+            "test_confidence" : "[0.05, 0.05]",
             "test_bounds"       : "[-5.00, 0.00]"
         },
 
@@ -69,14 +77,14 @@
             "both_options"      : "Threads=1 Hash=32",
             "both_time_control" : "8.0+0.08",
             "workload_size"     : 32,
-            "test_max_games"  : 10000
+            "test_max_games"  : 1000
         },
 
         "LTC fixed" : {
             "both_options"      : "Threads=1 Hash=128",
             "both_time_control" : "40.0+0.4",
             "workload_size"     : 8,
-            "test_max_games"  : 5000
+            "test_max_games"  : 1000
         }
     },
 
@@ -88,14 +96,9 @@
             "draw_adj"  : "movenumber=40 movecount=8 score=10"
         },
 
-        "STC" : {
-            "dev_options"      : "Threads=1 Hash=32",
-            "dev_time_control" : "8.0+0.08"
-        },
-
-        "MTC" : {
-            "dev_options"      : "Threads=1 Hash=64",
-            "dev_time_control" : "16.0+0.16"
+        "SMP" : {
+            "dev_options"      : "Threads=4 Hash=256",
+            "dev_time_control" : "20.0+0.2"
         },
 
         "LTC" : {
@@ -112,9 +115,9 @@
             "workload_size" : 128
         },
 
-        "40k Nodes" : {
+        "5ksn" : {
             "both_options"      : "Threads=1 Hash=16",
-            "both_time_control" : "N=40000"
+            "both_time_control" : "N=5000"
         }
     }
 }
